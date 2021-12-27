@@ -1,4 +1,5 @@
 from RPA.Browser.Selenium import Selenium
+from time import sleep
 
 browser_lib = Selenium()
 
@@ -7,22 +8,24 @@ def open_the_website(url):
     browser_lib.open_available_browser(url)
 
 
-def search_for(term):
-    input_field = "css:input"
-    browser_lib.input_text(input_field, term)
-    browser_lib.press_keys(input_field, "ENTER")
+def click_dive_in():
+    button_xpath = '//*[@id="node-23"]/div/div/div/div/div/div/div/a'
+    browser_lib.click_element_when_visible(button_xpath)
 
+def get_agencies():
+    agencies = browser_lib.get_webelements('//div[@class="col-sm-4 text-center noUnderline"]/div/div/div/div/a/span')
+    print(agencies[0].text)
 
-def store_screenshot(filename):
-    browser_lib.screenshot(filename=filename)
 
 
 # Define a main() function that calls the other functions in order:
 def main():
     try:
-        open_the_website("https://robocorp.com/docs/")
-        search_for("python")
-        store_screenshot("output/screenshot.png")
+        open_the_website("https://itdashboard.gov/")
+        click_dive_in()
+        sleep(5)
+        print('terminado')
+        get_agencies()
     finally:
         browser_lib.close_all_browsers()
 
