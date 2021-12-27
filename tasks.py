@@ -12,10 +12,11 @@ def click_dive_in():
     button_xpath = '//*[@id="node-23"]/div/div/div/div/div/div/div/a'
     browser_lib.click_element_when_visible(button_xpath)
 
-def get_agencies():
-    agencies = browser_lib.get_webelements('//div[@class="col-sm-4 text-center noUnderline"]/div/div/div/div/a/span')
-    print(agencies[0].text)
+def get_data():
+    data = browser_lib.get_webelements('//div[@class="col-sm-4 text-center noUnderline"]/div/div/div/div/a/span')
+    data = [x.text for x in data]
 
+    print(data)
 
 
 # Define a main() function that calls the other functions in order:
@@ -25,7 +26,7 @@ def main():
         click_dive_in()
         sleep(5)
         print('terminado')
-        get_agencies()
+        get_data()
     finally:
         browser_lib.close_all_browsers()
 
