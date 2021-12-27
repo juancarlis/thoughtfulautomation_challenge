@@ -2,6 +2,7 @@ from RPA.Browser.Selenium import Selenium
 from time import sleep
 
 import pandas as pd
+import openpyxl
 
 browser_lib = Selenium()
 
@@ -32,14 +33,28 @@ def creating_dataframe(data_tuples):
 
     return df
 
+
+def saving_excel(df):
+    # writer = pd.ExcelWriter('output/agencies.xlsx', engine='openpyxl')
+    # workbook=writer.book
+    # worksheets=workbook.add_worksheet('Agencies')
+    
+    # df.to_excel(writer,sheet_name='Agencies', startrow=0, startcol=0, index=False)
+
+    df.to_excel('output/agencies.xlsx', sheet_name='Agencies', index=False, startrow=0, startcol=0)
+
 # Define a main() function that calls the other functions in order:
 def main():
     try:
         open_the_website("https://itdashboard.gov/")
         click_dive_in()
+        sleep(2)
         data_tuples = get_data()
-        print(data_tuples)
-        creating_dataframe(data_tuples)
+        sleep(2)
+        df = creating_dataframe(data_tuples)
+
+        saving_excel(df)
+        
     finally:
         browser_lib.close_all_browsers()
 
