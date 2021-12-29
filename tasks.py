@@ -155,6 +155,8 @@ def main():
 
         download_pdfs()
 
+        sleep(5)
+
     finally:
         browser_lib.close_all_browsers()
 
