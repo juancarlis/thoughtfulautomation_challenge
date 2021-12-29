@@ -53,6 +53,7 @@ def saving_excel(df, filename):
 
 
 def dive_through_agency(agency_name):
+    logger.info(f'Diving through agency {agency_name}')
 
     data = browser_lib.get_webelements('//div[@class="col-sm-4 text-center noUnderline"]/div/div/div/div/a/span')
 
@@ -64,9 +65,41 @@ def dive_through_agency(agency_name):
 
 
 def get_full_table():
+    logger.info('Extract table from selected agency')
 
     select_field = '//select[@name="investments-table-object_length"]/option[text()="All"]'
     browser_lib.click_element_when_visible(select_field)
+
+    sleep(10)
+
+    headers = browser_lib.get_webelements('//div[@class="dataTables_scrollHeadInner"]/table/thead/tr/th')
+    headers = [x.text for x in headers]
+
+    table = browser_lib.get_webelements('//div[@class="dataTables_scrollBody"]/table/tbody/tr/td')
+    table = [x.text for x in table]
+    
+    data = [table[i:i + len(headers)] for i in range(0, len(table), len(headers))]
+
+    df = pd.DataFrame(data, columns=headers)
+
+    return df
+
+
+def save_table(df, filename, sheet_name):
+    logger.info(f'Append agency table into excel file at {filename}')
+
+    with pd.ExcelWriter(filename, mode='a') as writer:
+        df.to_excel(writer, sheet_name=sheet_name, index=False, startrow=0, startcol=0)
+
+
+def get_links():
+    logger.info('Get links')
+
+    links = browser_lib.get_webelements('//div[@class="dataTables_scrollBody"]/table/tbody/tr/td/a')
+
+    for link in links:
+        browser_lib.go_to(link)
+        sleep(2)
 
 
 # Define a main() function that calls the other functions in order:
@@ -84,9 +117,18 @@ def main():
         agency = config()['agency']
         dive_through_agency(agency) 
         sleep(5)
+        print('')
+        print('obtenemos la url:')
+        print(browser_lib.get_location())
+        print('')
 
-        get_full_table()
+        df = get_full_table()
+
+        save_table(df, 'output/agencies.xlsx', agency)
+
         sleep(5)
+
+        get_links()
 
     finally:
         browser_lib.close_all_browsers()
