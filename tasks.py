@@ -1,17 +1,22 @@
 from RPA.Browser.Selenium import Selenium
-from time import sleep
-
 import pandas as pd
+
+from time import sleep
 import logging
 
+from pathlib import Path
 from config.common import config
 
+pdf_path = Path(config()['pdf_path']) 
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
 browser_lib = Selenium()
+
+logger.info('Set download directory')
+browser_lib.set_download_directory(directory=pdf_path.resolve(), download_pdf=True)
 
 
 def open_the_website(url):
@@ -93,12 +98,19 @@ def save_table(df, filename, sheet_name):
 
 
 def download_pdfs():
-    logger.info('Get links')
+
+    logger.info('Download pdfs')
 
     links = browser_lib.get_webelements('//div[@class="dataTables_scrollBody"]/table/tbody/tr/td/a')
     links = [x.text for x in links]
 
     main_url = browser_lib.get_location()
+
+    print('')
+    print(links)
+    print('')
+    print(len(links))
+    print('')
 
     for link in links:
         print('')
@@ -107,8 +119,16 @@ def download_pdfs():
         print(main_url+'/'+link)
         print('')
         browser_lib.go_to(main_url+'/'+link)
-        elem = '//div[@id="business-case-pdf"]/a'
-        browser_lib.wait_until_element_is_enabled(elem, 10, 'Element not visible')
+        pdf_download_link = '//div[@id="business-case-pdf"]/a'
+        browser_lib.wait_until_element_is_enabled(pdf_download_link, 10, 'Element not visible')
+        browser_lib.click_element_when_visible(pdf_download_link)
+
+        download_span = '//div[@id="business-case-pdf"]/span'
+        try:
+            browser_lib.wait_until_element_is_visible(download_span, 20)
+            browser_lib.wait_until_element_is_not_visible(download_span, 20)
+        except AssertionError as error:
+            print(error)
 
 
 # Define a main() function that calls the other functions in order:
