@@ -92,14 +92,23 @@ def save_table(df, filename, sheet_name):
         df.to_excel(writer, sheet_name=sheet_name, index=False, startrow=0, startcol=0)
 
 
-def get_links():
+def download_pdfs():
     logger.info('Get links')
 
     links = browser_lib.get_webelements('//div[@class="dataTables_scrollBody"]/table/tbody/tr/td/a')
+    links = [x.text for x in links]
+
+    main_url = browser_lib.get_location()
 
     for link in links:
-        browser_lib.go_to(link)
-        sleep(2)
+        print('')
+        print(main_url)
+        print(link)
+        print(main_url+'/'+link)
+        print('')
+        browser_lib.go_to(main_url+'/'+link)
+        elem = '//div[@id="business-case-pdf"]/a'
+        browser_lib.wait_until_element_is_enabled(elem, 10, 'Element not visible')
 
 
 # Define a main() function that calls the other functions in order:
@@ -117,10 +126,6 @@ def main():
         agency = config()['agency']
         dive_through_agency(agency) 
         sleep(5)
-        print('')
-        print('obtenemos la url:')
-        print(browser_lib.get_location())
-        print('')
 
         df = get_full_table()
 
@@ -128,7 +133,7 @@ def main():
 
         sleep(5)
 
-        get_links()
+        download_pdfs()
 
     finally:
         browser_lib.close_all_browsers()
