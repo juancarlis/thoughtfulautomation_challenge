@@ -134,7 +134,7 @@ def download_pdfs():
 
 
 def extract_data_from_pdf(pdf_path):
-    logger.info('Extract the data from the PDFs using regex')
+    logger.info(f'Extract the data from the PDFs using regex at path: {pdf_path}')
     data = {}
 
     text = pdf.get_text_from_pdf(pdf_path, pages=[1])
@@ -167,16 +167,8 @@ def save_updated_df(df, filename, sheet_name):
     # df.to_excel(filename, sheet_name=config()['agency'], index=False)
     logger.info('Update dataframe with new column')
 
-    excel_book = load_workbook(filename)
-
-    with pd.ExcelWriter(filename, engine='openpyxl') as writer:
-    
-        writer.book = excel_book
-        writer.sheets = dict((ws.title, ws) for ws in excel_book.worksheets)
-
+    with pd.ExcelWriter(filename, mode='a') as writer:
         df.to_excel(writer, sheet_name=sheet_name, index=False, startrow=0, startcol=0)
-
-        writer.save()
 
 # Define a main() function that calls the other functions in order:
 def main():
@@ -214,12 +206,13 @@ def main():
     data = {}
 
     for current_file in pdf_path.iterdir():
-        raw = extract_data_from_pdf(current_file)
+        if str(current_file)[-4:] == '.pdf':
+            raw = extract_data_from_pdf(current_file)
 
-        data[raw['uii']] = raw['investment_name']
+            data[raw['uii']] = raw['investment_name']
 
     df = compare_pdf_with_excel('./output/output.xlsx', data)
-    save_updated_df(df, './output/output.xlsx', agency[0:30])
+    save_updated_df(df, './output/output.xlsx', 'PDF comparison')
 
     pdf.close_all_pdfs()
 
