@@ -7,7 +7,7 @@
 #### Config
 Modify **config/config.yaml** for basic configuration:
 - agency: to select the agency whose "Individual Investments" are going to be scraped. 
-- pdf_path: the path where PDF files are going to be downloaded 
+- pdf_path: the path where PDF files are going to be downloaded.
 
 
 #### Improvements
