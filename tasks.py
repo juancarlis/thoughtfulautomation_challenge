@@ -1,11 +1,16 @@
-from RPA.Browser.Selenium import Selenium
 import pandas as pd
+import logging
+
+from RPA.Browser.Selenium import Selenium
+from RPA.PDF import PDF
+from robot.libraries.String import String
 
 from time import sleep
-import logging
 
 from pathlib import Path
 from config.common import config
+
+from openpyxl import load_workbook
 
 pdf_path = Path(config()['pdf_path']) 
 
@@ -17,6 +22,9 @@ browser_lib = Selenium()
 
 logger.info('Set download directory')
 browser_lib.set_download_directory(directory=pdf_path.resolve(), download_pdf=True)
+
+pdf = PDF()
+string = String()
 
 
 def open_the_website(url):
@@ -106,18 +114,12 @@ def download_pdfs():
 
     main_url = browser_lib.get_location()
 
-    print('')
-    print(links)
-    print('')
-    print(len(links))
-    print('')
-
     for link in links:
-        print('')
-        print(main_url)
-        print(link)
-        print(main_url+'/'+link)
-        print('')
+#        print('')
+#        print(main_url)
+#        print(link)
+#        print(main_url+'/'+link)
+#        print('')
         browser_lib.go_to(main_url+'/'+link)
         pdf_download_link = '//div[@id="business-case-pdf"]/a'
         browser_lib.wait_until_element_is_enabled(pdf_download_link, 10, 'Element not visible')
@@ -131,8 +133,55 @@ def download_pdfs():
             print(error)
 
 
+def extract_data_from_pdf(pdf_path):
+    logger.info('Extract the data from the PDFs using regex')
+    data = {}
+
+    text = pdf.get_text_from_pdf(pdf_path, pages=[1])
+    investment_name = string.get_regexp_matches(text[1], '(?<=Name of this Investment: )(.*)(?=2. Unique Investment Identifier)')
+    uii = string.get_regexp_matches(text[1], '(?<=Unique Investment Identifier \(UII\): )(.*)(?=Section B)')
+
+    data['uii'] = uii[0]
+    data['investment_name'] = investment_name[0]
+    
+    return data
+
+
+def compare_pdf_with_excel(filename, data):
+    logger.info('Add a column to the excel file with the Titles from the PDFs, comparing UII')
+    df = pd.read_excel(filename, sheet_name=config()['agency'][0:30])
+    
+    new_column = []
+    for elem in df['UII']:
+        if elem in data:
+            new_column.append(data[elem])
+        else:
+            new_column.append('Not in PDF')
+
+    df['Title in PDF'] = new_column
+
+    return df
+
+
+def save_updated_df(df, filename, sheet_name):
+    # df.to_excel(filename, sheet_name=config()['agency'], index=False)
+    logger.info('Update dataframe with new column')
+
+    excel_book = load_workbook(filename)
+
+    with pd.ExcelWriter(filename, engine='openpyxl') as writer:
+    
+        writer.book = excel_book
+        writer.sheets = dict((ws.title, ws) for ws in excel_book.worksheets)
+
+        df.to_excel(writer, sheet_name=sheet_name, index=False, startrow=0, startcol=0)
+
+        writer.save()
+
 # Define a main() function that calls the other functions in order:
 def main():
+    
+    # Scrape data from web 
     try:
         open_the_website("https://itdashboard.gov/")
         click_dive_in()
@@ -141,7 +190,7 @@ def main():
         sleep(2)
         df = creating_dataframe(data_tuples)
 
-        saving_excel(df, 'output/agencies.xlsx')
+        saving_excel(df, 'output/output.xlsx')
 
         agency = config()['agency']
         dive_through_agency(agency) 
@@ -149,7 +198,7 @@ def main():
 
         df = get_full_table()
 
-        save_table(df, 'output/agencies.xlsx', agency)
+        save_table(df, 'output/output.xlsx', agency[0:30])
 
         sleep(5)
 
@@ -159,6 +208,20 @@ def main():
 
     finally:
         browser_lib.close_all_browsers()
+
+
+    # Compare data in excel with PDFs
+    data = {}
+
+    for current_file in pdf_path.iterdir():
+        raw = extract_data_from_pdf(current_file)
+
+        data[raw['uii']] = raw['investment_name']
+
+    df = compare_pdf_with_excel('./output/output.xlsx', data)
+    save_updated_df(df, './output/output.xlsx', agency[0:30])
+
+    pdf.close_all_pdfs()
 
 
 # Call the main() function, checking that we are running as a stand-alone script:
