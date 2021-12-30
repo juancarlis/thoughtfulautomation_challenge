@@ -19,23 +19,15 @@ Your challenge is to automate the process of extracting data from [**itdashboard
 - This task should take no more than 4 hours.
     - If you reach 4 hours with tasks still remaining, please describe how in theory you would complete this challenge if more time was allowed.
 
-<aside>
 💡 Please leverage pure Python (ex: [here](https://robocorp.com/docs/development-guide/python/python-robot)) ***without*** Robot Framework using the **[rpaframework](https://rpaframework.org/)** for this exercise. While API's and Web Requests are possible the focus is on RPA skillsets so please do not use API's or Web Requests for this exercise.
 
-</aside>
 
-<aside>
 ⭐ We are looking for creative engineers that are up for a challenge. 😎
 
 As an added step, extract data from PDF. You need to get the data from **Section A** in each PDF. Then compare the value "**Name of this Investment**" with the column "**Investment Title**", and the value "**Unique Investment Identifier (UII)**" with the column "**UII**"
 
-</aside>
+🚀 Up for the challenge?
 
-<aside>
-🚀 Up for the challenge? 
-
-Complete the challenge, make sure you have successful executions in Robocorp Cloud, and add [challenges**@thoughtfulautomation.com**](mailto:challenges@thoughtfulautomation.com) as a member to your workspace using this [guide](https://robocorp.com/docs/control-room/administration/organizations-and-workspaces) so we can review. 
+Complete the challenge, make sure you have successful executions in Robocorp Cloud, and add [**challenges@thoughtfulautomation.com**](mailto:challenges@thoughtfulautomation.com) as a member to your workspace using this [guide](https://robocorp.com/docs/control-room/administration/organizations-and-workspaces) so we can review. 
 
 Important! Please also send an email to [challenges@thoughtfulautomation.com](mailto:challenges@thoughtfulautomation.com) with your Workspace name and direct link so we can associate your submission.
-
-</aside>
