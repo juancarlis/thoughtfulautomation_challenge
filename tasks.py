@@ -49,13 +49,13 @@ def click_dive_in():
 
 
 def get_agencies_amount():
-    """Gets each agency and the corresponding amount and
+    """Scrape for each agency and the corresponding amount and
     returns a dataframe with two columns:
-        - Agency
-        - Amount
+        - Agencies
+        - Amounts
 
     Returns:
-        df (df)
+        df (df): dataframe with two columns ['Agencies', 'Amounts']
 
     """
 
@@ -81,36 +81,60 @@ def get_agencies_amount():
 
     # Creates a dataframe with the tuples from the previous step
     logger.info('Create dataframe from data tuples')
-    df = pd.DataFrame(
+    df_agencies = pd.DataFrame(
         agency_amount_tuples,
-        columns=['Agency', 'Amount']
+        columns=['Agencies', 'Amounts']
     )
 
-    return df
+    return df_agencies
 
 
-def saving_excel(df, filename):
-    logger.info(f'Save into excel file at {filename}')
+def _save_agencies_to_excel(df, filename):
+    """
+    Saves a given dataframe in an xlsx file.
+
+    Parameters:
+
+        df (df): dataframe with agencies and amounts
+        filename (str): path and name of the excel file
+    """
+
+    logger.info(f'Saving into excel file at {filename}')
 
     df.to_excel(filename, sheet_name='Agencies',
                 index=False, startrow=0, startcol=0)
 
 
 def dive_through_agency(agency_name):
+    """
+    Finds the agency name given and click on its web element
+    """
     logger.info(f'Diving through agency {agency_name}')
 
-    data = browser_lib.get_webelements(
+    # Store every agency web element in agencies variable
+    # then loop through each agency web element and if it
+    # finds a match with agency_name then click on it
+    agencies = browser_lib.get_webelements(
         '//div[@class="col-sm-4 text-center noUnderline"]/div/div/div/div/a/span')
 
-    for elem in data:
-        if elem.text == agency_name:
-            agency = elem
+    agency_element = None
 
-    browser_lib.click_element_when_visible(agency)
+    for agency in agencies:
+        if agency.text == agency_name:
+            agency_element = agency
+
+    if agency_element is not None:
+        browser_lib.click_element_when_visible(agency_element)
+    else:
+        logger.info('The Agency does not exist!')
+        browser_lib.close_all_browsers()
 
 
 def get_full_table():
-    logger.info('Extract table from selected agency')
+    """
+
+    """
+    logger.info('Extracting table from selected agency')
 
     select_field = '//select[@name="investments-table-object_length"]/option[text()="All"]'
     browser_lib.click_element_when_visible(select_field)
@@ -213,24 +237,25 @@ def save_updated_df(df, filename, sheet_name):
 
 def main():
 
-    # Scrape data from web
+    # Scrape data from website: 'https://itdashboard.gov/'
     try:
+        # Extractig excel file with agencies and amounts
         open_the_website("https://itdashboard.gov/")
         click_dive_in()
         sleep(2)
-        data_tuples = get_agencies_amount()
+        df_agencies_amount = get_agencies_amount()
         sleep(2)
         print(get_agencies_amount.__doc__)
-        print(data_tuples)
-#        df = creating_dataframe(data_tuples)
-#
-#        saving_excel(df, 'output/output.xlsx')
-#
-#        agency = config()['agency']
-#        dive_through_agency(agency)
-#        sleep(5)
-#
-#        df = get_full_table()
+        print(df_agencies_amount)
+
+        _save_agencies_to_excel(df_agencies_amount, 'output/output.xlsx')
+
+        # Scraping through the agency determined in the config file
+        agency = config()['agency']
+        dive_through_agency(agency)
+        sleep(5)
+
+        #df = get_full_table()
 #
 #        save_table(df, 'output/output.xlsx', agency[0:30])
 #
