@@ -1,4 +1,27 @@
-# RPA
+""" RCC Tasks main file
+
+Scrapes through the website "https://itdashboard.gov/" and
+performs three main tasks:
+
+1. Finds every government agency listed on the homepage and their
+respective invested amounts and writes the data into an excel file.
+
+2. Dives through one agency (written) in the config file at
+"config/config.yaml" and extracts a table with all the Individual Investments.
+
+3. If the individual investment on the table has a link, dives through it and
+extracts a PDF file that contains a detail of the investment. Later on,
+it scrapes through every PDF downloaded and compares it with the table
+saved on the previous step.
+
+Runs with
+```
+rcc run
+```
+
+"""
+
+# RPA imports
 from RPA.Browser.Selenium import Selenium
 from RPA.PDF import PDF
 from robot.libraries.String import String
@@ -12,8 +35,7 @@ from config.common import config
 from pathlib import Path
 
 
-# Globals
-
+# Global objects definition
 # Path where the pdf files are downloaded
 pdf_path = Path(config()['pdf_path'])
 
@@ -162,8 +184,9 @@ def get_individual_investments_table():
     )
 
     # Write "All" in the select field to make the table shows the full content
-    select = '//select[@name="investments-table-object_length"]/option[text()="All"]'
-    browser_lib.click_element_when_visible(select)
+    select_field = '//select[@name="investments-table-object_length"]'\
+        '/option[text()="All"]'
+    browser_lib.click_element_when_visible(select_field)
 
     sleep(10)
 
@@ -248,9 +271,13 @@ def extract_data_from_pdf(pdf_path):
     # Use regular expressions to match the UII and the Name of the Investment
     text = pdf.get_text_from_pdf(pdf_path, pages=[1])
     investment_name = string.get_regexp_matches(
-        text[1], '(?<=Name of this Investment: )(.*)(?=2. Unique Investment Identifier)')
+        text[1],
+        '(?<=Name of this Investment: )(.*)(?=2. Unique Investment Identifier)'
+    )
     uii = string.get_regexp_matches(
-        text[1], '(?<=Unique Investment Identifier \(UII\): )(.*)(?=Section B)')
+        text[1],
+        '(?<=Unique Investment Identifier \(UII\): )(.*)(?=Section B)'
+    )
 
     # Stores the UII and the Investment Name in a dictionary and return it
     data['uii'] = uii[0]
@@ -271,8 +298,8 @@ def compare_pdf_with_excel(filename, data):
                                         extracted from the PDF.
     """
     logger.info(
-        'Comparing the data from the PDF with the Investments Table\
-                in the excel file')
+        'Comparing the data from the PDF with the Investments Table'
+        'in the excel file')
     df_new_investments_table = pd.read_excel(
         filename, sheet_name=config()['agency'][0:30])
 
@@ -318,8 +345,8 @@ def main():
 
         df_individual_investments_table = get_individual_investments_table()
 
-        logger.info('Updating excel file with the individual\
-                investments table')
+        logger.info('Updating excel file with the individual'
+                    'investments table')
         _save_df_to_excel(
             df_individual_investments_table,
             'output/output.xlsx',
