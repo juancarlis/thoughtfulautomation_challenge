@@ -44,7 +44,7 @@ def click_dive_in():
     """Click the 'Dive In' button"""
 
     logger.info('Click dive in button')
-    button_xpath = '//a[@href="#home-dive-in"]/text()'
+    button_xpath = '//a[@href="#home-dive-in"]'
     browser_lib.click_element_when_visible(button_xpath)
 
 
@@ -63,7 +63,7 @@ def get_agencies_amount():
     # a list of elements
     logger.info('Access all agencies by xpath')
     data = browser_lib.get_webelements(
-        '//div[@class="col-sm-4 text-center noUnderline"]/div/div/div/div/a/span')
+        '//div[@class="col-sm-4 text-center noUnderline"]//span')
     data = [x.text for x in data]
 
     # Split the data in the format:
@@ -132,7 +132,7 @@ def dive_through_agency(agency_name):
     # then loop through each agency web element and if it
     # finds a match with agency_name then click on it
     agencies = browser_lib.get_webelements(
-        '//div[@class="col-sm-4 text-center noUnderline"]/div/div/div/div/a/span')
+        '//div[@class="col-sm-4 text-center noUnderline"]//span')
 
     agency_element = None
 
@@ -158,23 +158,24 @@ def get_individual_investments_table():
                                         from the web.
     """
     logger.info(
-        'Extracting table with the "Individual Investments" from chosen agency')
+        'Extracting table with the "Individual Investments" from chosen agency'
+    )
 
-    # To make the table show the whole content
-    select_field = '//select[@name="investments-table-object_length"]/option[text()="All"]'
-    browser_lib.click_element_when_visible(select_field)
+    # Write "All" in the select field to make the table shows the full content
+    select = '//select[@name="investments-table-object_length"]/option[text()="All"]'
+    browser_lib.click_element_when_visible(select)
 
     sleep(10)
 
     # Get the table headers
     headers = browser_lib.get_webelements(
-        '//div[@class="dataTables_scrollHeadInner"]/table/thead/tr/th')
+        '//div[@class="dataTables_scrollHeadInner"]//th')
     headers = [x.text for x in headers]
 
     # Get the table in raw data format, as a list of elements with no
     # differentiating into rows or columns.
     raw_data = browser_lib.get_webelements(
-        '//div[@class="dataTables_scrollBody"]/table/tbody/tr/td')
+        '//div[@class="dataTables_scrollBody"]//tbody//td')
     raw_data = [data.text for data in raw_data]
 
     # Transform the raw data into a list of lists, where the sublists
@@ -198,7 +199,7 @@ def download_pdfs():
 
     # Get every link in a list of web elements and converted to strings
     links = browser_lib.get_webelements(
-        '//div[@class="dataTables_scrollBody"]/table/tbody/tr/td/a')
+        '//div[@class="dataTables_scrollBody"]//a')
     links = [x.text for x in links]
 
     # Store the main URL of the agency
