@@ -187,14 +187,29 @@ def get_individual_investments_table():
 
 
 def download_pdfs():
+    """
+    Downloads the PDF files of the chosen agency by pressing on the button:
+     - Download Business Case PDF
+    """
 
-    logger.info('Download pdfs')
+    logger.info('Downloading chosen agency PDFs')
 
+    # Get every link in a list of web elements and converted to strings
     links = browser_lib.get_webelements(
         '//div[@class="dataTables_scrollBody"]/table/tbody/tr/td/a')
     links = [x.text for x in links]
 
+    # Store the main URL of the agency
+    # For example: https://itdashboard.gov/drupal/summary/005
     main_url = browser_lib.get_location()
+
+    # Loop through the list of links and gets the endpoint of each UII
+    # with a PDF file
+    # In the example:
+    # 'https://itdashboard.gov/drupal/summary/005' + '/' + 'link'
+    # Then the scraper goes to each link and presses the download button
+    # when its visible
+    # The download path is set in the globals and defined by the config file
 
     for link in links:
         browser_lib.go_to(main_url+'/'+link)
@@ -280,7 +295,7 @@ def main():
         sleep(5)
 
         df_individual_investments_table = get_individual_investments_table()
-#        save_table(df, 'output/output.xlsx', agency[0:30])
+
         _save_df_to_excel(
             df_individual_investments_table,
             'output/output.xlsx',
@@ -290,7 +305,7 @@ def main():
 #
 #        sleep(5)
 #
-#        download_pdfs()
+        download_pdfs()
 #
 #        sleep(5)
 #
