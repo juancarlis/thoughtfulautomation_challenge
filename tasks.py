@@ -44,7 +44,7 @@ def click_dive_in():
     """Click the 'Dive In' button"""
 
     logger.info('Click dive in button')
-    button_xpath = '//*[@id="node-23"]/div/div/div/div/div/div/div/a'
+    button_xpath = '//a[@href="#home-dive-in"]/text()'
     browser_lib.click_element_when_visible(button_xpath)
 
 
@@ -97,6 +97,8 @@ def _save_df_to_excel(df, filename, sheet_name, append=False):
 
         df (df): dataframe with agencies and amounts
         filename (str): path and name of the excel file
+        sheet_name (str): sheet where the dataframe is pasted
+        append (bool): if False creates a new excel file
     """
 
     logger.info(f'Saving into excel file at {filename}')
@@ -227,16 +229,29 @@ def download_pdfs():
 
 
 def extract_data_from_pdf(pdf_path):
+    """
+    Extracts the UII and the  Investment Name found on the section A of
+    the downloaded PDFs.
+
+    Parameters:
+        pdf_path (str): the path of the PDF to extract the data.
+
+    Returns:
+       data (dictionary): contains the information in the format
+                        {'UII':'Investment Name'}
+    """
     logger.info(
-        f'Extract the data from the PDFs using regex at path: {pdf_path}')
+        f'Extracting the data from the PDFs using regex at path: {pdf_path}')
     data = {}
 
+    # Use regular expressions to match the UII and the Name of the Investment
     text = pdf.get_text_from_pdf(pdf_path, pages=[1])
     investment_name = string.get_regexp_matches(
         text[1], '(?<=Name of this Investment: )(.*)(?=2. Unique Investment Identifier)')
     uii = string.get_regexp_matches(
         text[1], '(?<=Unique Investment Identifier \(UII\): )(.*)(?=Section B)')
 
+    # Stores the UII and the Investment Name in a dictionary and return it
     data['uii'] = uii[0]
     data['investment_name'] = investment_name[0]
 
@@ -244,33 +259,39 @@ def extract_data_from_pdf(pdf_path):
 
 
 def compare_pdf_with_excel(filename, data):
-    logger.info(
-        'Add a column to the excel file with the Titles from the PDFs, comparing UII')
-    df = pd.read_excel(filename, sheet_name=config()['agency'][0:30])
+    """
+    Takes the table of Individual Investments of the excel file and appends
+    a new column that matches the UII of the table with the UII in the data
+    extracted from the PDF.
 
+    Returns:
+        df_new_investments_table (df): same investments table with a new column
+                                        that contains the Investment Name
+                                        extracted from the PDF.
+    """
+    logger.info(
+        'Comparing the data from the PDF with the Investments Table\
+                in the excel file')
+    df_new_investments_table = pd.read_excel(
+        filename, sheet_name=config()['agency'][0:30])
+
+    # Loop through each UII in the df and check if it exists in the data
+    # dictionary then populates a list with the Investment Name that matches
+    # each UII and if it is not found appends 'Not in PDF'.
     new_column = []
-    for elem in df['UII']:
+    for elem in df_new_investments_table['UII']:
         if elem in data:
             new_column.append(data[elem])
         else:
             new_column.append('Not in PDF')
 
-    df['Title in PDF'] = new_column
+    # Creates a new column for the table and returns the df
+    df_new_investments_table['Title in PDF'] = new_column
 
-    return df
+    return df_new_investments_table
 
-
-def save_updated_df(df, filename, sheet_name):
-    # df.to_excel(filename, sheet_name=config()['agency'], index=False)
-    logger.info('Update dataframe with new column')
-
-    with pd.ExcelWriter(filename, mode='a') as writer:
-        df.to_excel(writer, sheet_name=sheet_name,
-                    index=False, startrow=0, startcol=0)
 
 # Define a main() function that calls the other functions in order:
-
-
 def main():
 
     # Scrape data from website: 'https://itdashboard.gov/'
@@ -296,35 +317,48 @@ def main():
 
         df_individual_investments_table = get_individual_investments_table()
 
+        logger.info('Updating excel file with the individual\
+                investments table')
         _save_df_to_excel(
             df_individual_investments_table,
             'output/output.xlsx',
             agency[0:30],
             append=True
         )
-#
-#        sleep(5)
-#
+
+        sleep(5)
         download_pdfs()
-#
-#        sleep(5)
-#
+        sleep(5)
+
     finally:
         browser_lib.close_all_browsers()
-#
-#    # Compare data in excel with PDFs
-#    data = {}
-#
-#    for current_file in pdf_path.iterdir():
-#        if str(current_file)[-4:] == '.pdf':
-#            raw = extract_data_from_pdf(current_file)
-#
-#            data[raw['uii']] = raw['investment_name']
-#
-#    df = compare_pdf_with_excel('./output/output.xlsx', data)
-#    save_updated_df(df, './output/output.xlsx', 'PDF comparison')
-#
-#    pdf.close_all_pdfs()
+
+    # Compare data in excel with PDFs
+    data = {}
+
+    # Fill data dictionary with each PDF information in the format:
+    #   {'UII':'Investment Name'} looping through each PDF file on
+    # the 'output' directory
+    for current_file in pdf_path.iterdir():
+        # Checking validation to scrape on PDFs only
+        if str(current_file)[-4:] == '.pdf':
+            raw = extract_data_from_pdf(current_file)
+
+            data[raw['uii']] = raw['investment_name']
+
+    # Comparing excel table with PDF data and creating new dataframe
+    df_new_investments_table = compare_pdf_with_excel(
+        './output/output.xlsx', data)
+
+    logger.info('Saving comparison table into at sheet "PDF comparison"')
+    _save_df_to_excel(
+        df=df_new_investments_table,
+        filename='output/output.xlsx',
+        sheet_name='PDF comparison',
+        append=True
+    )
+
+    pdf.close_all_pdfs()
 
 
 # Call the main() function,
