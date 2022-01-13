@@ -89,9 +89,9 @@ def get_agencies_amount():
     return df_agencies
 
 
-def _save_agencies_to_excel(df, filename):
+def _save_df_to_excel(df, filename, sheet_name, append=False):
     """
-    Saves a given dataframe in an xlsx file.
+    Saves a given dataframe to an xlsx file.
 
     Parameters:
 
@@ -101,8 +101,23 @@ def _save_agencies_to_excel(df, filename):
 
     logger.info(f'Saving into excel file at {filename}')
 
-    df.to_excel(filename, sheet_name='Agencies',
-                index=False, startrow=0, startcol=0)
+    if not append:
+        df.to_excel(
+            filename,
+            sheet_name=sheet_name,
+            index=False,
+            startrow=0,
+            startcol=0
+        )
+    else:
+        with pd.ExcelWriter(filename, mode='a') as writer:
+            df.to_excel(
+                writer,
+                sheet_name=sheet_name,
+                index=False,
+                startrow=0,
+                startcol=0
+            )
 
 
 def dive_through_agency(agency_name):
@@ -128,33 +143,47 @@ def dive_through_agency(agency_name):
     else:
         logger.info('The Agency does not exist!')
         browser_lib.close_all_browsers()
+        exit()
 
 
-def get_full_table():
+def get_individual_investments_table():
     """
+    Gets the table with all 'Individual Investments' and returns a dataframe
+    with the data.
 
+    Returns:
+        df_individual_investments (df): dataframe containing the data extracted
+                                        from the web.
     """
-    logger.info('Extracting table from selected agency')
+    logger.info(
+        'Extracting table with the "Individual Investments" from chosen agency')
 
+    # To make the table show the whole content
     select_field = '//select[@name="investments-table-object_length"]/option[text()="All"]'
     browser_lib.click_element_when_visible(select_field)
 
     sleep(10)
 
+    # Get the table headers
     headers = browser_lib.get_webelements(
         '//div[@class="dataTables_scrollHeadInner"]/table/thead/tr/th')
     headers = [x.text for x in headers]
 
-    table = browser_lib.get_webelements(
+    # Get the table in raw data format, as a list of elements with no
+    # differentiating into rows or columns.
+    raw_data = browser_lib.get_webelements(
         '//div[@class="dataTables_scrollBody"]/table/tbody/tr/td')
-    table = [x.text for x in table]
+    raw_data = [data.text for data in raw_data]
 
-    data = [table[i:i + len(headers)]
-            for i in range(0, len(table), len(headers))]
+    # Transform the raw data into a list of lists, where the sublists
+    # represents each row of the table.
+    data = [raw_data[i:i + len(headers)]
+            for i in range(0, len(raw_data), len(headers))]
 
-    df = pd.DataFrame(data, columns=headers)
+    # Create a dataframe with the data and the headers
+    df_individual_investments = pd.DataFrame(data, columns=headers)
 
-    return df
+    return df_individual_investments
 
 
 def save_table(df, filename, sheet_name):
@@ -245,19 +274,27 @@ def main():
         sleep(2)
         df_agencies_amount = get_agencies_amount()
         sleep(2)
-        print(get_agencies_amount.__doc__)
-        print(df_agencies_amount)
 
-        _save_agencies_to_excel(df_agencies_amount, 'output/output.xlsx')
+        _save_df_to_excel(
+            df_agencies_amount,
+            'output/output.xlsx',
+            'Agencies',
+            append=False
+        )
 
         # Scraping through the agency determined in the config file
         agency = config()['agency']
         dive_through_agency(agency)
         sleep(5)
 
-        #df = get_full_table()
-#
+        df_individual_investments_table = get_individual_investments_table()
 #        save_table(df, 'output/output.xlsx', agency[0:30])
+        _save_df_to_excel(
+            df_individual_investments_table,
+            'output/output.xlsx',
+            agency[0:30],
+            append=True
+        )
 #
 #        sleep(5)
 #
