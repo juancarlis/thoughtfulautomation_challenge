@@ -186,14 +186,6 @@ def get_individual_investments_table():
     return df_individual_investments
 
 
-def save_table(df, filename, sheet_name):
-    logger.info(f'Append agency table into excel file at {filename}')
-
-    with pd.ExcelWriter(filename, mode='a') as writer:
-        df.to_excel(writer, sheet_name=sheet_name,
-                    index=False, startrow=0, startcol=0)
-
-
 def download_pdfs():
 
     logger.info('Download pdfs')
