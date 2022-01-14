@@ -19,6 +19,10 @@ Runs with
 rcc run
 ```
 
+Information:
+The common.py is used to import config.yaml as a dictionary. This method
+is used to preserve memory.
+
 """
 
 # RPA imports
@@ -165,7 +169,12 @@ def dive_through_agency(agency_name):
     if agency_element is not None:
         browser_lib.click_element_when_visible(agency_element)
     else:
+        logger.info('* ' * 20)
         logger.info('The Agency does not exist!')
+        logger.info('Replace the config file with one of this:')
+        for agency in agencies[0::2]:
+            logger.info(f'{agency.text}')
+        logger.info('* ' * 20)
         browser_lib.close_all_browsers()
         exit()
 
