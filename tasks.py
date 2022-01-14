@@ -30,7 +30,6 @@ from robot.libraries.String import String
 import logging
 import pandas as pd
 
-from time import sleep
 from config.common import config
 from pathlib import Path
 
@@ -70,7 +69,7 @@ def click_dive_in():
     browser_lib.click_element_when_visible(button_xpath)
 
 
-def get_agencies_amount():
+def get_agencies_and_amounts():
     """Scrape for each agency and the corresponding amount and
     returns a dataframe with two columns:
         - Agencies
@@ -84,8 +83,9 @@ def get_agencies_amount():
     # Get every agency name and amount by xpath and transform it into
     # a list of elements
     logger.info('Access all agencies by xpath')
-    data = browser_lib.get_webelements(
-        '//div[@class="col-sm-4 text-center noUnderline"]//span')
+    agencies_amounts = '//div[@class="col-sm-4 text-center noUnderline"]//span'
+    browser_lib.wait_until_page_contains_element(agencies_amounts, 5)
+    data = browser_lib.get_webelements(agencies_amounts)
     data = [x.text for x in data]
 
     # Split the data in the format:
@@ -186,9 +186,19 @@ def get_individual_investments_table():
     # Write "All" in the select field to make the table shows the full content
     select_field = '//select[@name="investments-table-object_length"]'\
         '/option[text()="All"]'
+    browser_lib.wait_until_element_is_visible(select_field, 10)
+
+    # Get text 'Showing 1 of 10 to XX entries' so as to check later if the
+    # table is fully loaded
+    table_description_div_xpath = '//div[@class="dataTables_info"]'
+    table_description_div = browser_lib.get_text(table_description_div_xpath)
+
+    # Change select field to All to show full table
     browser_lib.click_element_when_visible(select_field)
 
-    sleep(10)
+    # If the div description saved on the previous step is not found
+    # on the page then it means the table has loaded completely
+    browser_lib.wait_until_page_does_not_contain(table_description_div, 10)
 
     # Get the table headers
     headers = browser_lib.get_webelements(
@@ -216,6 +226,7 @@ def download_pdfs():
     """
     Downloads the PDF files of the chosen agency by pressing on the button:
      - Download Business Case PDF
+
     """
 
     logger.info('Downloading chosen agency PDFs')
@@ -327,9 +338,7 @@ def main():
         # Extractig excel file with agencies and amounts
         open_the_website("https://itdashboard.gov/")
         click_dive_in()
-        sleep(2)
-        df_agencies_amount = get_agencies_amount()
-        sleep(2)
+        df_agencies_amount = get_agencies_and_amounts()
 
         _save_df_to_excel(
             df_agencies_amount,
@@ -341,7 +350,6 @@ def main():
         # Scraping through the agency determined in the config file
         agency = config()['agency']
         dive_through_agency(agency)
-        sleep(5)
 
         df_individual_investments_table = get_individual_investments_table()
 
@@ -354,39 +362,37 @@ def main():
             append=True
         )
 
-        sleep(5)
         download_pdfs()
-        sleep(5)
+
+        # Compare data in excel with PDFs
+        data = {}
+
+        # Fill data dictionary with each PDF information in the format:
+        #   {'UII':'Investment Name'} looping through each PDF file on
+        # the 'output' directory
+        for current_file in pdf_path.iterdir():
+            # Checking validation to scrape on PDFs only
+            if str(current_file)[-4:] == '.pdf':
+                raw = extract_data_from_pdf(current_file)
+
+                data[raw['uii']] = raw['investment_name']
+
+        # Comparing excel table with PDF data and creating new dataframe
+        df_new_investments_table = compare_pdf_with_excel(
+            './output/output.xlsx', data)
+
+        logger.info('Saving comparison table into at sheet "PDF comparison"')
+        _save_df_to_excel(
+            df=df_new_investments_table,
+            filename='output/output.xlsx',
+            sheet_name='PDF comparison',
+            append=True
+        )
+
+        pdf.close_all_pdfs()
 
     finally:
         browser_lib.close_all_browsers()
-
-    # Compare data in excel with PDFs
-    data = {}
-
-    # Fill data dictionary with each PDF information in the format:
-    #   {'UII':'Investment Name'} looping through each PDF file on
-    # the 'output' directory
-    for current_file in pdf_path.iterdir():
-        # Checking validation to scrape on PDFs only
-        if str(current_file)[-4:] == '.pdf':
-            raw = extract_data_from_pdf(current_file)
-
-            data[raw['uii']] = raw['investment_name']
-
-    # Comparing excel table with PDF data and creating new dataframe
-    df_new_investments_table = compare_pdf_with_excel(
-        './output/output.xlsx', data)
-
-    logger.info('Saving comparison table into at sheet "PDF comparison"')
-    _save_df_to_excel(
-        df=df_new_investments_table,
-        filename='output/output.xlsx',
-        sheet_name='PDF comparison',
-        append=True
-    )
-
-    pdf.close_all_pdfs()
 
 
 # Call the main() function,
